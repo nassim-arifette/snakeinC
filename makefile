@@ -1,32 +1,34 @@
-NAME  = snake
+NAME := snake
 
-SRCS= Snake.c Spawn.c Menu.c Info.c Deplacement.c Dessin.c Event.c
+CC ?= gcc
+CFLAGS ?= -std=gnu11 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -g
+LDFLAGS ?=
+LDLIBS := -lgraph
 
-OBJS   = ${SRCS:.c=.o}
+SRCS := Snake.c Spawn.c Menu.c Info.c Deplacement.c Dessin.c Event.c
+OBJS := $(SRCS:.c=.o)
 
-RM = rm -rf
+.PHONY: all clean fclean re debug compress
 
-CC  = gcc
+all: $(NAME)
 
-CGRAPH = -lgraph
+$(NAME): $(OBJS)
+	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
 
-.c.o:	${CC} -c $< -o ${<:.c=.o} 
+%.o: %.c Snake.h
+	$(CC) $(CFLAGS) -c $< -o $@
 
-${NAME}:	${OBJS}
-	${CC} -o ${NAME} ${OBJS} $(CGRAPH)
-
-all:	${NAME}
+debug: CFLAGS += -O0 -fsanitize=address,undefined -fno-omit-frame-pointer
+debug: LDFLAGS += -fsanitize=address,undefined
+debug: fclean $(NAME)
 
 clean:
-	 ${RM} ${OBJS}
+	$(RM) $(OBJS)
 
-fclean:	clean
-	${RM} ${NAME}
+fclean: clean
+	$(RM) $(NAME)
 
-re:	fclean all
+re: fclean all
 
-compress: mrpoper
-	tar zcvf Snake.tar.gz
-
-.PHONY:	clean fclean all re compress
-
+compress:
+	tar czvf Snake.tar.gz $(SRCS) Snake.h makefile *.png *.jpg *.gif
