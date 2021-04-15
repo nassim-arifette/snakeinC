@@ -1,103 +1,214 @@
 #include "Snake.h"
 
-Serpent* SpawnSerpent(Jeux* game){
+static void clearSnakeNodes(Serpent *snake)
+{
+    Noeud *node;
 
-	Serpent* snake;
-	Noeud* tetesnake=malloc(sizeof(Noeud));
-	Noeud* queuesnake=malloc(sizeof(Noeud));
-	Noeud* corpsnake=malloc(sizeof(Noeud));
+    if (snake == NULL) {
+        return;
+    }
 
-	int tmp=0,tmp2=0;
-	if(game->gamemode==2){
-		tmp=game->colonne;
-		game->colonne=game->colonne/2-5;
-	}
+    node = snake->queue;
+    while (node != NULL) {
+        Noeud *next = node->suiv;
+        free(node);
+        node = next;
+    }
 
-
-	tetesnake->x = game->ligne/2+2;
-	tetesnake->y = game->colonne/2+1;
-	tetesnake->suiv = NULL;
-
-	corpsnake->x = game->ligne/2+2;
-	corpsnake->y = game->colonne/2;
-	corpsnake->suiv = tetesnake;
-
-	queuesnake->x = game->ligne/2+2;
-	queuesnake->y = game->colonne/2-1;
-	queuesnake->suiv = corpsnake;
-
-	snake->tete = tetesnake;
-	snake->queue = queuesnake;
-
-	for (int i=game->colonne/2+1;i<=game->colonne/2+7+game->taille-10;i++){
-		Noeud* newtete=malloc(sizeof(Noeud));
-
-		newtete->x = game->ligne/2+2;
-		newtete->y = i;
-		newtete->suiv = NULL;
-
-		snake->tete->suiv = newtete;
-		snake->tete = snake->tete->suiv;
-	}
-
-	for(int i=0;i<game->ligne;i++){
-		for(int j=0;j<game->colonne;j++){
-			if(i==game->ligne/2+2 && j>=game->colonne/2 && j<= game->colonne/2+7+game->taille-10){
-				game->plat[i][j]=1;
-			}
-		}
-	}
-
-	if(game->gamemode==2){
-		game->colonne=tmp;
-	}
-
-	return(snake);
+    snake->queue = NULL;
+    snake->tete = NULL;
+    snake->taille = 0;
 }
 
-
-void generateFeed(Jeux* game,int feed)
+Serpent *SpawnSerpent(Jeux *game)
 {
-	int i = 0;
-	int j = 0;
-	int count  = 0;
+    Serpent *snake;
+    Noeud *previous = NULL;
+    int row;
+    int start_y;
+    int area_end;
+    int length;
+    int i;
 
-	srand(time(NULL));
+    if (game == NULL || game->plat == NULL) {
+        return NULL;
+    }
 
-	if(game->gamemode==3)
-		feed=1;
+    snake = calloc(1, sizeof(*snake));
+    if (snake == NULL) {
+        return NULL;
+    }
 
-	while (count != feed){
-		i = rand() % (game->ligne);
-		j = rand() % (game->colonne);
-		if(game->plat[i][j] == 0 && i!=game->ligne/2+2) {
-			game->plat[i][j] = 2;
-			if(game->gamemode==3){
-				AfficherSprite(1,20*j,20*i);
-			}
-			count++;
-		}
-	}
-	game->nbpommes=feed;
+    row = game->ligne / 2 + 2;
+
+    if (game->gamemode == GAME_WITH_PORTALS) {
+        int spawn_columns = game->colonne / 2 - 5;
+        start_y = spawn_columns / 2 - 1;
+        area_end = game->colonne / 2 - 9;
+    } else {
+        start_y = game->colonne / 2 - 1;
+        area_end = game->colonne - 1;
+    }
+
+    if (start_y < 1) {
+        start_y = 1;
+    }
+
+    length = game->taille;
+    if (length < 3) {
+        length = 3;
+    }
+    if (length > area_end - start_y) {
+        length = area_end - start_y;
+    }
+
+    if (row <= 0 || row >= game->ligne - 1 || length < 1) {
+        free(snake);
+        return NULL;
+    }
+
+    for (i = 0; i < length; ++i) {
+        Noeud *node = malloc(sizeof(*node));
+        int y = start_y + i;
+
+        if (node == NULL) {
+            clearSnakeNodes(snake);
+            free(snake);
+            return NULL;
+        }
+
+        node->x = row;
+        node->y = y;
+        node->suiv = NULL;
+
+        if (snake->queue == NULL) {
+            snake->queue = node;
+        } else {
+            previous->suiv = node;
+        }
+
+        previous = node;
+        snake->tete = node;
+        snake->taille++;
+        game->plat[row][y] = CELL_SNAKE;
+    }
+
+    return snake;
 }
 
-void generateTrap(Jeux* game,int trap)
+int ResetSerpent(Serpent *snake, Jeux *game)
 {
-	int i = 0;
-	int j = 0;
-	int count  = 0;
+    Serpent *fresh;
 
-	srand(time(NULL));
+    if (snake == NULL) {
+        return 0;
+    }
 
-	while (count != trap){
-		i = rand() % (game->ligne);
-		j = rand() % (game->colonne);
-		if(game->plat[i][j] == 0 && i!=game->ligne/2+2) {
-			game->plat[i][j] = 3;
-			if(game->gamemode==3){
-				AfficherSprite(5,20*j,20*i);
-			}
-			count++;
-		}
-	}
+    clearSnakeNodes(snake);
+    fresh = SpawnSerpent(game);
+    if (fresh == NULL) {
+        return 0;
+    }
+
+    snake->queue = fresh->queue;
+    snake->tete = fresh->tete;
+    snake->taille = fresh->taille;
+    free(fresh);
+
+    return 1;
+}
+
+void destroySnake(Serpent *snake)
+{
+    if (snake == NULL) {
+        return;
+    }
+
+    clearSnakeNodes(snake);
+    free(snake);
+}
+
+static int countEmptyCells(const Jeux *game)
+{
+    int count = 0;
+    int i;
+    int j;
+
+    for (i = 0; i < game->ligne; ++i) {
+        for (j = 0; j < game->colonne; ++j) {
+            if (game->plat[i][j] == CELL_EMPTY && i != game->ligne / 2 + 2) {
+                ++count;
+            }
+        }
+    }
+
+    return count;
+}
+
+void generateFeed(Jeux *game, int feed)
+{
+    int count = 0;
+    int available;
+
+    if (game == NULL) {
+        return;
+    }
+
+    if (game->gamemode == GAME_INFINITE) {
+        feed = 1;
+    }
+    if (feed < 0) {
+        feed = 0;
+    }
+
+    available = countEmptyCells(game);
+    if (feed > available) {
+        feed = available;
+    }
+
+    while (count < feed) {
+        int i = rand() % game->ligne;
+        int j = rand() % game->colonne;
+
+        if (game->plat[i][j] == CELL_EMPTY && i != game->ligne / 2 + 2) {
+            game->plat[i][j] = CELL_APPLE;
+            if (game->gamemode == GAME_INFINITE) {
+                AfficherSprite(1, CELL_SIZE * j, CELL_SIZE * i);
+            }
+            ++count;
+        }
+    }
+
+    game->nbpommes = feed;
+}
+
+void generateTrap(Jeux *game, int trap)
+{
+    int count = 0;
+    int available;
+
+    if (game == NULL) {
+        return;
+    }
+    if (trap < 0) {
+        trap = 0;
+    }
+
+    available = countEmptyCells(game);
+    if (trap > available) {
+        trap = available;
+    }
+
+    while (count < trap) {
+        int i = rand() % game->ligne;
+        int j = rand() % game->colonne;
+
+        if (game->plat[i][j] == CELL_EMPTY && i != game->ligne / 2 + 2) {
+            game->plat[i][j] = CELL_TRAP;
+            if (game->gamemode == GAME_INFINITE) {
+                AfficherSprite(5, CELL_SIZE * j, CELL_SIZE * i);
+            }
+            ++count;
+        }
+    }
 }

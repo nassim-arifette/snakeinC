@@ -1,95 +1,87 @@
 #include "Snake.h"
 
-void print(Jeux *game){
-
+void print(Jeux *game)
+{
     couleur c;
-    c=CouleurParComposante(87,138,52);
-    ChoisirCouleurDessin(c);
-    DessinerRectangle(50,40,50,50);
-    RemplirRectangle(50,40,50,50);
-
-    DessinerRectangle(345,40,50,50);
-    RemplirRectangle(345,40,50,50);
-
-    DessinerRectangle(435,40,50,50);
-    RemplirRectangle(435,40,50,50);
-
     char buf[100];
-    AfficherSprite(2,0,30);
-    snprintf(buf,100,"%d",game->nbpommes);
-    c = CouleurParNom("black");
-    ChoisirCouleurDessin(c);
-    EcrireTexte(60,70,buf,2);
 
-    AfficherSprite(3,100,30);
+    if (game == NULL) {
+        return;
+    }
+
+    c = CouleurParComposante(87, 138, 52);
+    ChoisirCouleurDessin(c);
+    DessinerRectangle(50, 40, 50, 50);
+    RemplirRectangle(50, 40, 50, 50);
+    DessinerRectangle(345, 40, 50, 50);
+    RemplirRectangle(345, 40, 50, 50);
+    DessinerRectangle(435, 40, 50, 50);
+    RemplirRectangle(435, 40, 50, 50);
+
+    AfficherSprite(2, 0, 30);
+    snprintf(buf, sizeof(buf), "%d", game->nbpommes);
+    ChoisirCouleurDessin(CouleurParNom("black"));
+    EcrireTexte(60, 70, buf, 2);
+
+    AfficherSprite(3, 100, 30);
     Litscore(game);
-    snprintf(buf,100,"%d",game->highscore);
+    snprintf(buf, sizeof(buf), "%d", game->highscore);
+    EcrireTexte(160, 70, buf, 2);
 
-    c = CouleurParNom("black");
-    ChoisirCouleurDessin(c);
-    EcrireTexte(160,70,buf,2);
+    snprintf(buf, sizeof(buf), "Score: %d", game->score);
+    EcrireTexte(250, 70, buf, 2);
 
-    snprintf(buf,100,"Score: %d",game->score);
-    c = CouleurParNom("black");
-    ChoisirCouleurDessin(c);
-    EcrireTexte(250,70,buf,2);
-
-    if(game->gamemode==1 || game->gamemode==2){
-        snprintf(buf,100,"Level: %d",game->lvl);
-        c = CouleurParNom("black");
-        ChoisirCouleurDessin(c);
-        EcrireTexte(440,70,buf,2);
+    if (game->gamemode == GAME_WITH_WALLS || game->gamemode == GAME_WITH_PORTALS) {
+        snprintf(buf, sizeof(buf), "Level: %d", game->lvl);
+        EcrireTexte(440, 70, buf, 2);
     }
 }
 
-void printinit(Jeux* game){
-    /*for(int i=0;i<game->ligne;i++){
-        for(int j=0;j<game->colonne;j++){
-            printf("%d",game->plat[i][j]);
-        }
-        printf("\n");
-    }*/
+void printinit(Jeux *game)
+{
+    (void)game;
 }
 
 void Inscritscore(Jeux *game)
 {
-    FILE* fichier = NULL;
+    FILE *fichier;
 
-    fichier = fopen("test.txt", "a");
+    if (game == NULL) {
+        return;
+    }
 
-    if (fichier != NULL)
-    {
-        // On peut lire et écrire dans le fichier
-        fprintf(fichier, "%d\n", game->score);
-        fclose(fichier);
+    fichier = fopen(SCORE_FILE, "a");
+    if (fichier == NULL) {
+        fprintf(stderr, "Impossible d'ouvrir %s en ecriture\n", SCORE_FILE);
+        return;
     }
-    else
-    {
-        // On affiche un message d'erreur si on veut
-        printf("Impossible d'ouvrir le fichier test.txt");
-    }
+
+    fprintf(fichier, "%d\n", game->score);
+    fclose(fichier);
 }
 
 void Litscore(Jeux *game)
 {
-	FILE* fichier = NULL;
- 
-    fichier = fopen("test.txt", "r");
- 	int score = 0;
- 	int tmp;
- 	int caractereActuel = 0;
-    if(fichier != NULL)
-    {
-    	while (caractereActuel != EOF)
-    	{
-    		caractereActuel = fgetc(fichier);
-    		fscanf(fichier, "%d",&tmp);
-    		if (tmp >=score)
-    		{
-    			score = tmp;
-    		}
-    	}
-    	game->highscore = score;
-        fclose(fichier);
+    FILE *fichier;
+    int value;
+    int highscore = 0;
+
+    if (game == NULL) {
+        return;
     }
+
+    fichier = fopen(SCORE_FILE, "r");
+    if (fichier == NULL) {
+        game->highscore = 0;
+        return;
+    }
+
+    while (fscanf(fichier, "%d", &value) == 1) {
+        if (value > highscore) {
+            highscore = value;
+        }
+    }
+
+    fclose(fichier);
+    game->highscore = highscore;
 }

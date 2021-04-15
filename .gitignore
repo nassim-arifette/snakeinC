@@ -1,0 +1,8 @@
+*.o
+snake
+Snake.tar.gz
+test.txt
+*.log
+.DS_Store
+.vscode/
+.idea/
