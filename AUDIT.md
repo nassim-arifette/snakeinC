@@ -1,50 +1,62 @@
 # Audit technique
 
-## Problemes corriges dans cette branche
+## Phase 1 - stabilisation
 
-### Memoire
+La premiere passe a corrige :
 
-- allocation manquante de `Serpent` dans `SpawnSerpent` ;
-- destructeurs explicites pour les noeuds du serpent et la grille ;
-- suppression des ecritures hors limites dans la saisie du menu ;
-- gestion des echecs d'allocation de la grille et du serpent.
+- l'allocation invalide du serpent ;
+- plusieurs ecritures hors limites dans le menu ;
+- les boucles recursives entre jeu, niveaux et menu ;
+- les fuites principales et les destructeurs manquants ;
+- le RNG reseede plusieurs fois ;
+- les boucles potentiellement infinies de spawn ;
+- la lecture fragile du high score ;
+- les artefacts compiles versionnes ;
+- le Makefile et une cible ASan/UBSan.
 
-### Cycle de vie
+## Phase 2 - separation du coeur
 
-- suppression de la boucle de jeu recursive dans `lvlup` ;
-- suppression du rappel de `MenuBase` depuis la boucle de jeu ;
-- une partie quitte maintenant reellement sa boucle lorsque `game->end` est positionne ;
-- le menu est rouvert par `main` apres la fin d'une partie.
+Cette passe extrait un moteur pur C :
 
-### Robustesse
+- `Board` utilise maintenant un stockage contigu ;
+- `Game` possede directement le `Snake` ;
+- `game_step()` concentre mouvement, collisions, pommes et progression ;
+- le moteur ne dessine plus pendant un mouvement ou un spawn ;
+- le high score n'est plus relu depuis le disque a chaque frame ;
+- `score.c` isole la persistance ;
+- `input_graph.c`, `renderer_graph.c` et `menu_graph.c` sont les seuls fichiers qui dependent de `graph.h` ;
+- `make test` compile et execute le coeur sans `-lgraph`.
 
-- generation des pommes et obstacles bornee par le nombre de cases libres ;
-- `srand` appele une seule fois au demarrage ;
-- vitesse minimale afin d'eviter un delai negatif ;
-- lecture du high score basee uniquement sur le resultat de `fscanf` ;
-- enum pour les types de cases et les modes de jeu ;
-- include guard et prototypes complets dans `Snake.h`.
+## Frontiere d'architecture
 
-### Depot / build
+```text
+          +-----------------------+
+          |       main.c          |
+          +-----------+-----------+
+                      |
+       +--------------+--------------+
+       |              |              |
+   input.h        renderer.h       menu.h
+       |              |              |
+ input_graph.c  renderer_graph.c  menu_graph.c
+       \              |              /
+        \-------------+-------------/
+                      |
+              +-------v-------+
+              |    game.h     |
+              +-------+-------+
+                      |
+              +-------+-------+
+              |               |
+           board.h          snake.h
+```
 
-- suppression des `.o`, du binaire `snake`, du fichier de scores et du fichier objet parasite ;
-- ajout de `.gitignore` ;
-- warnings GCC plus stricts ;
-- cible `make debug` avec ASan/UBSan ;
-- correction de la cible `compress`.
+Le coeur (`board.c`, `snake.c`, `game.c`) ne depend d'aucune bibliotheque graphique.
 
-## Points encore a traiter
+## Suite recommandee
 
-1. Separer completement la logique du rendu : `Spawn.c` et d'autres fichiers appellent encore directement `graph.h`.
-2. Sortir les structures dans plusieurs headers (`game.h`, `snake.h`, `renderer.h`, etc.).
-3. Remplacer `int **plat` par une representation contigue ou une structure `Board`.
-4. Remplacer le fichier de scores par une persistance plus propre et ne pas relire le disque a chaque frame.
-5. Ajouter des tests unitaires de logique sans fenetre graphique.
-6. Ajouter une abstraction `Renderer`, puis une implementation raylib.
-
-## Ordre recommande pour la suite
-
-- Phase 1 : stabiliser cette branche avec le vrai environnement `graph.h` et les sanitizers.
-- Phase 2 : extraire un coeur de jeu pur C testable sans interface graphique.
-- Phase 3 : ajouter un renderer raylib en parallele de l'ancien renderer.
-- Phase 4 : supprimer `graph.h` lorsque la parite fonctionnelle est validee.
+1. Valider le runtime avec la vraie bibliotheque `graph.h` et `make debug`.
+2. Etendre les tests unitaires aux portails et aux changements de niveau.
+3. Ajouter `renderer_raylib.c` et `input_raylib.c`.
+4. Porter le menu vers raylib.
+5. Une fois la parite fonctionnelle obtenue, retirer `-lgraph`.

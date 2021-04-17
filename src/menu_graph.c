@@ -1,8 +1,16 @@
-#include "Snake.h"
+#include "menu.h"
 
-static void drawMainMenu(const Menu *menue)
+#include <graph.h>
+#include <stdio.h>
+
+typedef struct MenuState {
+    GameConfig config;
+    int last_score;
+} MenuState;
+
+static void draw_main_menu(const MenuState *state)
 {
-    char buf[100];
+    char buffer[100];
 
     EffacerEcran(CouleurParNom("white"));
     ChargerImageFond("backgroundmenu.jpg");
@@ -13,11 +21,11 @@ static void drawMainMenu(const Menu *menue)
     EcrireTexte(300, 325, "Option", 2);
     EcrireTexte(300, 400, "Fermer", 2);
 
-    snprintf(buf, sizeof(buf), "Dernier Score: %d", menue->score);
-    EcrireTexte(100, 500, buf, 2);
+    snprintf(buffer, sizeof(buffer), "Dernier Score: %d", state->last_score);
+    EcrireTexte(100, 500, buffer, 2);
 }
 
-static void EcritureOption(void)
+static void draw_options(void)
 {
     ChoisirCouleurDessin(CouleurParNom("white"));
     ChargerImageFond("backgroundmenu.jpg");
@@ -56,7 +64,7 @@ static void EcritureOption(void)
     RemplirRectangle(250, 715, 200, 50);
 }
 
-static int keyToDigit(int key)
+static int key_to_digit(int key)
 {
     if (key >= XK_0 && key <= XK_9) {
         return key - XK_0;
@@ -67,15 +75,11 @@ static int keyToDigit(int key)
     return -1;
 }
 
-int Entree(int taille, int x, int y)
+static int read_number(int max_digits, int x, int y)
 {
     int value = 0;
     int count = 0;
     int draw_x = x;
-
-    if (taille <= 0) {
-        return 0;
-    }
 
     ChoisirCouleurDessin(CouleurParNom("black"));
 
@@ -85,15 +89,15 @@ int Entree(int taille, int x, int y)
         char text[2];
 
         if (key == XK_KP_Enter || key == XK_Return) {
-            break;
+            return value;
         }
 
-        digit = keyToDigit(key);
+        digit = key_to_digit(key);
         if (digit < 0) {
             continue;
         }
 
-        if (count >= taille) {
+        if (count >= max_digits) {
             ChoisirCouleurDessin(CouleurParNom("red"));
             EcrireTexte(x, y - 25, "Taille Invalide", 1);
             ChoisirCouleurDessin(CouleurParNom("black"));
@@ -107,72 +111,29 @@ int Entree(int taille, int x, int y)
         draw_x += 15;
         ++count;
     }
-
-    return value;
 }
 
-static void validateMenu(Menu *menue)
-{
-    int max_snake;
-
-    if (menue->ligne < 20) {
-        menue->ligne = 20;
-    } else if (menue->ligne > 100) {
-        menue->ligne = 100;
-    }
-
-    if (menue->colonne < 30) {
-        menue->colonne = 30;
-    } else if (menue->colonne > 150) {
-        menue->colonne = 150;
-    }
-
-    if (menue->gamemode < GAME_WITH_WALLS || menue->gamemode > GAME_INFINITE) {
-        menue->gamemode = GAME_WITH_WALLS;
-    }
-
-    if (menue->coeff < 1) {
-        menue->coeff = 1;
-    } else if (menue->coeff > 20) {
-        menue->coeff = 20;
-    }
-
-    if (menue->nbpommes < 1) {
-        menue->nbpommes = 1;
-    }
-
-    if (menue->trap < 0) {
-        menue->trap = 0;
-    }
-
-    if (menue->taille < 3) {
-        menue->taille = 3;
-    }
-
-    if (menue->gamemode == GAME_WITH_PORTALS) {
-        max_snake = menue->colonne / 4 - 4;
-    } else {
-        max_snake = menue->colonne / 2;
-    }
-    if (max_snake < 3) {
-        max_snake = 3;
-    }
-    if (menue->taille > max_snake) {
-        menue->taille = max_snake;
-    }
-}
-
-static void highlightText(int x, int y, const char *text)
+static void highlight_text(int x, int y, const char *text)
 {
     ChoisirCouleurDessin(CouleurParNom("red"));
     EcrireTexte(x, y, text, 2);
 }
 
-int EcriteMenuBase(Menu *menue)
+bool menu_run(int last_score, GameConfig *out_config)
 {
+    MenuState state;
     int screen = 0;
 
-    drawMainMenu(menue);
+    if (out_config == NULL) {
+        return false;
+    }
+
+    game_config_default(&state.config);
+    state.last_score = last_score;
+
+    InitialiserGraphique();
+    CreerFenetre(10, 10, 700, 900);
+    draw_main_menu(&state);
 
     for (;;) {
         if (!SourisCliquee()) {
@@ -183,96 +144,80 @@ int EcriteMenuBase(Menu *menue)
 
         if (screen == 0) {
             if (_X >= 295 && _X <= 395 && _Y >= 220 && _Y <= 270) {
-                validateMenu(menue);
-                return 1;
+                game_config_sanitize(&state.config);
+                *out_config = state.config;
+                FermerGraphique();
+                return true;
             }
+
             if (_X >= 295 && _X <= 395 && _Y >= 290 && _Y <= 340) {
                 screen = 1;
-                EcritureOption();
+                draw_options();
                 continue;
             }
+
             if (_X >= 295 && _X <= 370 && _Y >= 375 && _Y <= 430) {
-                return 3;
+                FermerGraphique();
+                return false;
             }
+
             continue;
         }
 
         if (_X >= 75 && _X <= 215 && _Y >= 115 && _Y <= 165) {
-            menue->coeff = 1;
-            EcritureOption();
-            highlightText(100, 150, "Facile");
+            state.config.speed_coeff = 1;
+            draw_options();
+            highlight_text(100, 150, "Facile");
         } else if (_X >= 275 && _X <= 415 && _Y >= 115 && _Y <= 165) {
-            menue->coeff = 5;
-            EcritureOption();
-            highlightText(300, 150, "Moyen");
+            state.config.speed_coeff = 5;
+            draw_options();
+            highlight_text(300, 150, "Moyen");
         } else if (_X >= 475 && _X <= 615 && _Y >= 115 && _Y <= 165) {
-            menue->coeff = 10;
-            EcritureOption();
-            highlightText(500, 150, "Difficile");
+            state.config.speed_coeff = 10;
+            draw_options();
+            highlight_text(500, 150, "Difficile");
         } else if (_X >= 40 && _X <= 240 && _Y >= 270 && _Y <= 320) {
-            menue->gamemode = GAME_WITH_WALLS;
-            EcritureOption();
-            highlightText(50, 300, "Avec Bord");
+            state.config.mode = GAME_WITH_WALLS;
+            draw_options();
+            highlight_text(50, 300, "Avec Bord");
         } else if (_X >= 290 && _X <= 490 && _Y >= 270 && _Y <= 320) {
-            menue->gamemode = GAME_WITH_PORTALS;
-            EcritureOption();
-            highlightText(300, 300, "Sans Bord");
+            state.config.mode = GAME_WITH_PORTALS;
+            draw_options();
+            highlight_text(300, 300, "Sans Bord");
         } else if (_X >= 520 && _X <= 620 && _Y >= 270 && _Y <= 320) {
-            menue->gamemode = GAME_INFINITE;
-            EcritureOption();
-            highlightText(530, 300, "Infini");
+            state.config.mode = GAME_INFINITE;
+            draw_options();
+            highlight_text(530, 300, "Infini");
         } else if (_X >= 50 && _X <= 250 && _Y >= 400 && _Y <= 450) {
-            int value = Entree(4, 50, 430);
+            int value = read_number(4, 50, 430);
             if (value > 0) {
-                menue->ligne = value;
+                state.config.rows = value;
             }
         } else if (_X >= 375 && _X <= 675 && _Y >= 400 && _Y <= 450) {
-            int value = Entree(4, 375, 430);
+            int value = read_number(4, 375, 430);
             if (value > 0) {
-                menue->colonne = value;
+                state.config.columns = value;
             }
         } else if (_X >= 50 && _X <= 250 && _Y >= 550 && _Y <= 600) {
-            int value = Entree(4, 50, 580);
+            int value = read_number(4, 50, 580);
             if (value > 0) {
-                menue->nbpommes = value;
+                state.config.apple_count = value;
             }
         } else if (_X >= 375 && _X <= 600 && _Y >= 550 && _Y <= 600) {
-            menue->trap = Entree(4, 375, 580);
+            state.config.trap_count = read_number(4, 375, 580);
         } else if (_X >= 250 && _X <= 450 && _Y >= 715 && _Y <= 765) {
-            int value = Entree(4, 250, 745);
+            int value = read_number(4, 250, 745);
             if (value > 0) {
-                menue->taille = value;
+                state.config.snake_length = value;
             }
         } else if (_X >= 10 && _X <= 150 && _Y >= 790 && _Y <= 840) {
             screen = 0;
-            drawMainMenu(menue);
+            draw_main_menu(&state);
         } else if (_X >= 470 && _X <= 610 && _Y >= 790 && _Y <= 840) {
-            validateMenu(menue);
-            return 1;
+            game_config_sanitize(&state.config);
+            *out_config = state.config;
+            FermerGraphique();
+            return true;
         }
     }
-}
-
-int MenuBase(int score)
-{
-    Menu menue;
-    int action;
-
-    jeuxdebase(&menue, score);
-
-    InitialiserGraphique();
-    CreerFenetre(10, 10, 700, 900);
-    action = EcriteMenuBase(&menue);
-
-    if (action == 3) {
-        FermerGraphique();
-        return -1;
-    }
-
-    if (action == 1) {
-        return launch(&menue);
-    }
-
-    FermerGraphique();
-    return -1;
 }

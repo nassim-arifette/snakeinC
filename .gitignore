@@ -1,5 +1,6 @@
 *.o
 snake
+test_core
 Snake.tar.gz
 test.txt
 *.log

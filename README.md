@@ -1,6 +1,6 @@
 # Snake en C
 
-Projet Snake en C utilisant actuellement la bibliotheque pedagogique `graph.h` / `-lgraph`.
+Projet Snake en C. L'interface utilise encore la bibliotheque pedagogique `graph.h`, mais le moteur du jeu est maintenant independant de cette bibliotheque.
 
 ## Build
 
@@ -9,32 +9,53 @@ make
 ./snake
 ```
 
-Pour compiler avec AddressSanitizer et UndefinedBehaviorSanitizer :
+Build instrumente avec AddressSanitizer et UndefinedBehaviorSanitizer :
 
 ```sh
 make debug
 ./snake
 ```
 
-## Organisation actuelle
+## Tests du coeur
 
-- `Snake.c` : cycle de vie du programme, creation/destruction d'une partie et changement de niveau.
-- `Spawn.c` : creation/destruction du serpent, pommes et obstacles.
-- `Deplacement.c` : deplacement et collisions.
-- `Event.c` : clavier et progression de la partie.
-- `Dessin.c` : rendu du plateau et du serpent.
-- `Menu.c` : menu et options.
-- `Info.c` : HUD et high score.
-- `Snake.h` : types et API partagee.
+Les regles du jeu peuvent etre compilees et testees sans `graph.h` ni `-lgraph` :
 
-Les fichiers generes (`*.o`, executable `snake`) et le fichier runtime `test.txt` sont ignores par Git.
+```sh
+make test
+```
 
-## Prochaine refactorisation
+Ce test couvre notamment le plateau, les changements de direction, la croissance apres une pomme et les collisions.
 
-Le coeur du jeu doit progressivement devenir independant de `graph.h`. L'objectif est de separer :
+## Architecture
 
-1. `game` / `snake` / `board` : logique pure sans appel graphique ;
-2. `input` : conversion des touches vers des commandes de jeu ;
-3. `renderer` : implementation graphique interchangeable.
+```text
+include/
+  board.h       representation du plateau
+  snake.h       modele du serpent
+  game.h        etat et regles du jeu
+  input.h       commandes d'entree generiques
+  renderer.h    interface de rendu
+  menu.h        interface du menu
+  score.h       persistance des scores
 
-Une fois cette separation faite, un renderer raylib pourra remplacer `graph.h` sans reecrire la logique du Snake.
+src/
+  board.c
+  snake.c
+  game.c        coeur pur C, sans graph.h
+  score.c       I/O standard C, sans graph.h
+  main.c        orchestration de l'application
+  input_graph.c adaptateur clavier graph.h
+  renderer_graph.c renderer graph.h
+  menu_graph.c  menu graph.h
+
+tests/
+  test_core.c
+```
+
+Seuls `input_graph.c`, `renderer_graph.c` et `menu_graph.c` connaissent `graph.h`.
+
+## Migration graphique
+
+La prochaine etape peut ajouter un `renderer_raylib.c` et un `input_raylib.c` derriere les memes interfaces. Le moteur `board/snake/game` n'a pas besoin d'etre reecrit.
+
+Les assets restent volontairement a la racine pour ne pas changer les chemins runtime dans cette etape.
