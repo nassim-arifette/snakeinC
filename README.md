@@ -1,61 +1,78 @@
 # Snake en C
 
-Projet Snake en C. L'interface utilise encore la bibliotheque pedagogique `graph.h`, mais le moteur du jeu est maintenant independant de cette bibliotheque.
+Projet Snake en C avec un coeur de jeu independant de la bibliotheque graphique.
 
-## Build
+Deux backends sont disponibles :
+
+- `graph.h` / `-lgraph` pour conserver la compatibilite avec l'environnement du cours ;
+- raylib 6.0 pour une version plus moderne et multiplateforme.
+
+## Backend du cours
 
 ```sh
 make
 ./snake
 ```
 
-Build instrumente avec AddressSanitizer et UndefinedBehaviorSanitizer :
+Build instrumente :
 
 ```sh
 make debug
 ./snake
 ```
 
+## Backend raylib
+
+Installer raylib et `pkg-config`, puis :
+
+```sh
+make raylib
+./snake-raylib
+```
+
+Le Makefile utilise `pkg-config --cflags --libs raylib` lorsqu'il est disponible, avec un fallback `-lraylib -lm`.
+
 ## Tests du coeur
 
-Les regles du jeu peuvent etre compilees et testees sans `graph.h` ni `-lgraph` :
+Les regles du jeu se compilent et se testent sans aucune bibliotheque graphique :
 
 ```sh
 make test
 ```
 
-Ce test couvre notamment le plateau, les changements de direction, la croissance apres une pomme et les collisions.
+Les tests couvrent le plateau, les changements de direction, la croissance, les portails et les collisions.
 
 ## Architecture
 
 ```text
 include/
-  board.h       representation du plateau
-  snake.h       modele du serpent
-  game.h        etat et regles du jeu
-  input.h       commandes d'entree generiques
-  renderer.h    interface de rendu
-  menu.h        interface du menu
-  score.h       persistance des scores
+  board.h
+  snake.h
+  game.h
+  input.h
+  renderer.h
+  menu.h
+  score.h
 
 src/
   board.c
   snake.c
-  game.c        coeur pur C, sans graph.h
-  score.c       I/O standard C, sans graph.h
-  main.c        orchestration de l'application
-  input_graph.c adaptateur clavier graph.h
-  renderer_graph.c renderer graph.h
-  menu_graph.c  menu graph.h
+  game.c
+  score.c
+  main.c
+
+  input_graph.c
+  renderer_graph.c
+  menu_graph.c
+
+  input_raylib.c
+  renderer_raylib.c
+  menu_raylib.c
 
 tests/
   test_core.c
 ```
 
-Seuls `input_graph.c`, `renderer_graph.c` et `menu_graph.c` connaissent `graph.h`.
+`main.c`, `game.c`, `board.c`, `snake.c` et `score.c` sont communs aux deux versions. Le backend se choisit uniquement au link.
 
-## Migration graphique
-
-La prochaine etape peut ajouter un `renderer_raylib.c` et un `input_raylib.c` derriere les memes interfaces. Le moteur `board/snake/game` n'a pas besoin d'etre reecrit.
-
-Les assets restent volontairement a la racine pour ne pas changer les chemins runtime dans cette etape.
+Les assets restent a la racine pour conserver des chemins runtime identiques entre les deux backends.

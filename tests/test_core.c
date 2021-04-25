@@ -89,6 +89,41 @@ static void test_apple_growth(void)
     game_destroy(game);
 }
 
+static void test_portal_traversal(void)
+{
+    GameConfig config;
+    Game *game;
+    Direction direction = {0, 1};
+    int entry_row;
+    int entry_column;
+    GameEvent event;
+
+    game_config_default(&config);
+    config.rows = 20;
+    config.columns = 30;
+    config.mode = GAME_WITH_PORTALS;
+    config.apple_count = 1;
+    config.trap_count = 0;
+    config.snake_length = 3;
+
+    game = game_create(&config);
+    assert(game != NULL);
+
+    entry_row = game->snake.head->row;
+    entry_column = game->snake.head->column + 1;
+    assert(board_get(&game->board, entry_row, entry_column) == CELL_PORTAL_LEFT);
+
+    game_start(game);
+    event = game_step(game, &direction);
+
+    assert((event & GAME_EVENT_MOVED) != 0);
+    assert(!game_is_over(game));
+    assert(game->snake.head->row == entry_row);
+    assert(game->snake.head->column == entry_column + 18);
+
+    game_destroy(game);
+}
+
 static void test_collision(void)
 {
     GameConfig config;
@@ -128,6 +163,7 @@ int main(void)
     test_board();
     test_direction();
     test_apple_growth();
+    test_portal_traversal();
     test_collision();
 
     puts("core tests: ok");
