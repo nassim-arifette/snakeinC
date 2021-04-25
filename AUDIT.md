@@ -60,3 +60,20 @@ Le coeur (`board.c`, `snake.c`, `game.c`) ne depend d'aucune bibliotheque graphi
 3. Ajouter `renderer_raylib.c` et `input_raylib.c`.
 4. Porter le menu vers raylib.
 5. Une fois la parite fonctionnelle obtenue, retirer `-lgraph`.
+
+
+## Phase 3 - backend raylib parallele
+
+Un second backend est maintenant disponible sans modifier le moteur :
+
+- `input_raylib.c` traduit les touches raylib vers `InputCommand` ;
+- `renderer_raylib.c` implemente le rendu via raylib ;
+- `menu_raylib.c` fournit un menu natif raylib ;
+- `make raylib` produit `snake-raylib` ;
+- le backend historique reste le build par defaut avec `make`.
+
+Le changement de bibliotheque n'affecte donc plus `board.c`, `snake.c`, `game.c`, `score.c` ni `main.c`.
+
+### Politique de migration
+
+Le backend `graph.h` reste disponible tant que la version raylib n'a pas ete validee visuellement et fonctionnellement. Une fois la parite confirmee, raylib pourra devenir le backend par defaut dans un commit distinct.

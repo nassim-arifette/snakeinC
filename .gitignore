@@ -1,5 +1,6 @@
 *.o
 snake
+snake-raylib
 test_core
 Snake.tar.gz
 test.txt
