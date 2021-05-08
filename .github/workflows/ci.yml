@@ -1,0 +1,15 @@
+name: core-ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  core-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and run core tests
+        run: make test
+      - name: Run sanitizers
+        run: make sanitize-test
