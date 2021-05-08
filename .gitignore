@@ -1,9 +1,6 @@
-*.o
-snake
-snake-raylib
-test_core
-Snake.tar.gz
-test.txt
+build/
+data/*
+!data/.gitkeep
 *.log
 .DS_Store
 .vscode/
