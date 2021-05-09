@@ -43,7 +43,7 @@ make debug
 │   ├── backgrounds/
 │   └── sprites/
 ├── data/                   # donnees runtime (highscore ignore par Git)
-├── docs/                   # architecture et historique de l'audit
+├── docs/                   # documentation d'architecture
 ├── include/snake/          # API publique des modules
 ├── src/
 │   ├── app/                # orchestration menu/partie
