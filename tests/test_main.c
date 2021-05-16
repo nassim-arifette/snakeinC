@@ -7,6 +7,7 @@ int main(void)
     test_board_suite();
     test_snake_suite();
     test_game_suite();
+    test_layout_suite();
 
     puts("all core tests: ok");
     return 0;

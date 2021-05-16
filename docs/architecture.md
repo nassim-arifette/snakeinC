@@ -19,6 +19,11 @@ core/game.c ---> core/level.c
   |                 |
   v                 v
 core/snake.c ---> core/board.c
+
+core/layout.c (calcul pur : taille de fenetre, geometrie du plateau)
+  ^                    ^
+  |                    |
+app/app.c        ui/menu.c, ui/renderer.c
 ```
 
 ## `src/core`
@@ -41,6 +46,16 @@ Contient les details internes d'un niveau : murs, portails, spawn du serpent, po
 
 `level.h` est volontairement prive dans `src/core` : ce n'est pas une API publique.
 
+### `layout.c`
+
+Calcule la mise en page sans toucher a raylib :
+
+- `layout_window_size()` choisit une taille de fenetre adaptee a l'ecran (avec des bornes minimum et maximum) ;
+- `layout_board_geometry()` place le plateau dans la fenetre : taille de case entiere, plateau centre sous le HUD ;
+- `layout_ui_transform()` met une interface concue dans un espace de reference a l'echelle de la fenetre.
+
+Une seule taille de fenetre est appliquee, au demarrage : le menu comme la partie gardent la meme fenetre pendant toute la vie du programme. Comme ce module est du calcul pur, il est teste par `make test` comme le reste du coeur.
+
 ## `src/app`
 
 `app.c` possede la boucle applicative. Il :
@@ -60,7 +75,9 @@ Le moteur conserve son rythme en microsecondes mais l'application utilise `GetFr
 - `menu.c` ne contient que l'interface du menu ;
 - `renderer.c` traduit l'etat `Game` en primitives raylib.
 
-Le renderer choisit dynamiquement la taille des cases pour garder les grands plateaux dans l'ecran courant.
+`menu.c` dessine une interface concue en 720x760 puis la met a l'echelle de la fenetre courante (`layout_ui_transform()`), ce qui garde la meme mise en page sur tous les ecrans.
+
+Le renderer ne change jamais la taille de la fenetre : il choisit la taille de case qui fait tenir le plateau courant dans cette fenetre et le centre.
 
 ## `src/platform`
 

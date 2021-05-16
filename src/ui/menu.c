@@ -2,11 +2,16 @@
 
 #include "assets.h"
 
+#include "snake/layout.h"
+
 #include <raylib.h>
 #include <stdio.h>
 
-#define MENU_WIDTH 720
-#define MENU_HEIGHT 760
+/* Espace de reference du menu : le rendu est ensuite mis a l'echelle de la
+   fenetre par layout_ui_transform(), donc la mise en page reste identique
+   quelle que soit la taille de l'ecran. */
+#define MENU_DESIGN_WIDTH 720
+#define MENU_DESIGN_HEIGHT 760
 
 typedef enum MenuAction {
     MENU_ACTION_NONE = 0,
@@ -21,9 +26,23 @@ typedef struct MenuState {
     bool options;
 } MenuState;
 
-static bool button(Rectangle bounds, const char *label, bool selected)
+static UiTransform menu_transform = {1.0f, 0.0f, 0.0f};
+
+/* Position de la souris ramenee dans l'espace de reference du menu. */
+static Vector2 menu_mouse(void)
 {
     Vector2 mouse = GetMousePosition();
+
+    if (menu_transform.scale <= 0.0f) {
+        return mouse;
+    }
+    return (Vector2){(mouse.x - menu_transform.offset_x) / menu_transform.scale,
+                     (mouse.y - menu_transform.offset_y) / menu_transform.scale};
+}
+
+static bool button(Rectangle bounds, const char *label, bool selected)
+{
+    Vector2 mouse = menu_mouse();
     bool hover = CheckCollisionPointRec(mouse, bounds);
     Color fill = selected ? ORANGE : (hover ? LIGHTGRAY : RAYWHITE);
     int font_size = 22;
@@ -50,7 +69,7 @@ static void draw_background(void)
                             0.0f,
                             (float)assets->menu_background.width,
                             (float)assets->menu_background.height};
-        Rectangle destination = {0.0f, 0.0f, (float)GetScreenWidth(), (float)GetScreenHeight()};
+        Rectangle destination = {0.0f, 0.0f, (float)MENU_DESIGN_WIDTH, (float)MENU_DESIGN_HEIGHT};
 
         DrawTexturePro(assets->menu_background,
                        source,
@@ -58,7 +77,7 @@ static void draw_background(void)
                        (Vector2){0.0f, 0.0f},
                        0.0f,
                        WHITE);
-        DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(RAYWHITE, 0.84f));
+        DrawRectangle(0, 0, MENU_DESIGN_WIDTH, MENU_DESIGN_HEIGHT, Fade(RAYWHITE, 0.84f));
     }
 }
 
@@ -67,7 +86,7 @@ static void draw_title(const char *title)
     int font_size = 42;
     int width = MeasureText(title, font_size);
 
-    DrawText(title, (MENU_WIDTH - width) / 2, 35, font_size, DARKGREEN);
+    DrawText(title, (MENU_DESIGN_WIDTH - width) / 2, 35, font_size, DARKGREEN);
 }
 
 static MenuAction draw_main_menu(MenuState *state)
@@ -188,11 +207,14 @@ bool menu_run(int last_score, int highscore, GameConfig *out_config)
     state.highscore = highscore;
     state.options = false;
 
-    SetWindowSize(MENU_WIDTH, MENU_HEIGHT);
     SetWindowTitle("Snake - Menu");
+    menu_transform = layout_ui_transform((WindowSize){GetScreenWidth(), GetScreenHeight()},
+                                         MENU_DESIGN_WIDTH,
+                                         MENU_DESIGN_HEIGHT);
 
     while (!WindowShouldClose()) {
         MenuAction action;
+        Camera2D camera = {0};
 
         if (IsKeyPressed(KEY_ESCAPE)) {
             if (state.options) {
@@ -202,9 +224,16 @@ bool menu_run(int last_score, int highscore, GameConfig *out_config)
             }
         }
 
+        camera.offset = (Vector2){menu_transform.offset_x, menu_transform.offset_y};
+        camera.target = (Vector2){0.0f, 0.0f};
+        camera.rotation = 0.0f;
+        camera.zoom = menu_transform.scale;
+
         BeginDrawing();
+        BeginMode2D(camera);
         draw_background();
         action = state.options ? draw_options_menu(&state) : draw_main_menu(&state);
+        EndMode2D();
         EndDrawing();
 
         if (action == MENU_ACTION_PLAY) {

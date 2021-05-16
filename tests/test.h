@@ -4,5 +4,6 @@
 void test_board_suite(void);
 void test_snake_suite(void);
 void test_game_suite(void);
+void test_layout_suite(void);
 
 #endif

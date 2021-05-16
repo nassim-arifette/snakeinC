@@ -2,15 +2,14 @@
 
 #include "assets.h"
 
+#include "snake/layout.h"
+
 #include <raylib.h>
 #include <stdio.h>
 
-#define DEFAULT_CELL_SIZE 20
-#define MIN_CELL_SIZE 6
 #define HUD_HEIGHT 96
-#define WINDOW_MARGIN 48
 
-static int cell_size = DEFAULT_CELL_SIZE;
+static BoardGeometry geometry = {LAYOUT_CELL_SIZE_DEFAULT, 0, 0};
 
 static const Color BOARD_LIGHT = {170, 215, 80, 255};
 static const Color BOARD_DARK = {162, 209, 73, 255};
@@ -27,9 +26,9 @@ static void draw_texture_in_cell(Texture2D texture,
                                  int column,
                                  Color fallback)
 {
-    float x = (float)(column * cell_size);
-    float y = (float)(HUD_HEIGHT + row * cell_size);
-    Rectangle destination = {x, y, (float)cell_size, (float)cell_size};
+    float x = (float)(geometry.origin_x + (column * geometry.cell_size));
+    float y = (float)(geometry.origin_y + (row * geometry.cell_size));
+    Rectangle destination = {x, y, (float)geometry.cell_size, (float)geometry.cell_size};
 
     if (IsTextureValid(texture)) {
         Rectangle source = {0.0f, 0.0f, (float)texture.width, (float)texture.height};
@@ -43,25 +42,26 @@ static void draw_cell(const Game *game, int row, int column)
 {
     const AppAssets *assets = assets_get();
     CellType cell = board_get(&game->board, row, column);
-    int x = column * cell_size;
-    int y = HUD_HEIGHT + row * cell_size;
+    int x = geometry.origin_x + (column * geometry.cell_size);
+    int y = geometry.origin_y + (row * geometry.cell_size);
+    int size = geometry.cell_size;
 
     switch (cell) {
     case CELL_WALL:
-        DrawRectangle(x, y, cell_size, cell_size, WALL_COLOR);
+        DrawRectangle(x, y, size, size, WALL_COLOR);
         break;
     case CELL_EMPTY:
-        DrawRectangle(x, y, cell_size, cell_size, board_color(row, column));
+        DrawRectangle(x, y, size, size, board_color(row, column));
         break;
     case CELL_SNAKE:
-        DrawRectangle(x, y, cell_size, cell_size, BLUE);
+        DrawRectangle(x, y, size, size, BLUE);
         break;
     case CELL_APPLE:
-        DrawRectangle(x, y, cell_size, cell_size, board_color(row, column));
+        DrawRectangle(x, y, size, size, board_color(row, column));
         draw_texture_in_cell(assets->apple, row, column, RED);
         break;
     case CELL_TRAP:
-        DrawRectangle(x, y, cell_size, cell_size, board_color(row, column));
+        DrawRectangle(x, y, size, size, board_color(row, column));
         draw_texture_in_cell(assets->bomb, row, column, BLACK);
         break;
     case CELL_PORTAL_TOP:
@@ -70,11 +70,11 @@ static void draw_cell(const Game *game, int row, int column)
     case CELL_PORTAL_RIGHT:
     case CELL_PORTAL_WRAP_LEFT:
     case CELL_PORTAL_WRAP_RIGHT:
-        DrawRectangle(x, y, cell_size, cell_size, board_color(row, column));
+        DrawRectangle(x, y, size, size, board_color(row, column));
         draw_texture_in_cell(assets->portal, row, column, PURPLE);
         break;
     default:
-        DrawRectangle(x, y, cell_size, cell_size, MAGENTA);
+        DrawRectangle(x, y, size, size, MAGENTA);
         break;
     }
 }
@@ -130,39 +130,25 @@ void renderer_shutdown(void)
 
 void renderer_prepare_game(const Game *game)
 {
-    int monitor;
-    int max_width;
-    int max_height;
-    int horizontal_cell_size;
-    int vertical_cell_size;
-    int window_width;
-    int window_height;
+    WindowSize window;
 
     if (game == NULL || !IsWindowReady()) {
         return;
     }
 
-    monitor = GetCurrentMonitor();
-    max_width = GetMonitorWidth(monitor) - WINDOW_MARGIN;
-    max_height = GetMonitorHeight(monitor) - HUD_HEIGHT - WINDOW_MARGIN;
-    horizontal_cell_size = max_width / game->board.columns;
-    vertical_cell_size = max_height / game->board.rows;
+    /* La fenetre ne change plus : le plateau s'adapte a sa taille. */
+    window.width = GetScreenWidth();
+    window.height = GetScreenHeight();
+    geometry = layout_board_geometry(window, game->board.rows, game->board.columns, HUD_HEIGHT);
 
-    cell_size = DEFAULT_CELL_SIZE;
-    if (horizontal_cell_size < cell_size) {
-        cell_size = horizontal_cell_size;
-    }
-    if (vertical_cell_size < cell_size) {
-        cell_size = vertical_cell_size;
-    }
-    if (cell_size < MIN_CELL_SIZE) {
-        cell_size = MIN_CELL_SIZE;
-    }
-
-    window_width = game->board.columns * cell_size;
-    window_height = HUD_HEIGHT + game->board.rows * cell_size;
-    SetWindowSize(window_width, window_height);
     SetWindowTitle("Snake");
+    TraceLog(LOG_INFO,
+             "Plateau %ix%i, cases de %i px, origine (%i, %i)",
+             game->board.columns,
+             game->board.rows,
+             geometry.cell_size,
+             geometry.origin_x,
+             geometry.origin_y);
 }
 
 void renderer_draw_game(const Game *game, int highscore)

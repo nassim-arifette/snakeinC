@@ -20,6 +20,8 @@ make run
 
 L'executable est genere dans `build/bin/snake`. Les assets sont recopies dans `build/bin/assets` afin que le binaire puisse aussi etre lance directement.
 
+La fenetre est dimensionnee une seule fois au demarrage, d'apres la taille de l'ecran. Le menu et la partie partagent ensuite cette meme taille : le menu est mis a l'echelle et le plateau adapte sa taille de case.
+
 ## Tests
 
 ```sh
@@ -47,7 +49,7 @@ make debug
 ├── include/snake/          # API publique des modules
 ├── src/
 │   ├── app/                # orchestration menu/partie
-│   ├── core/               # logique pure C
+│   ├── core/               # logique pure C (jeu et mise en page)
 │   ├── persistence/        # sauvegarde du meilleur score
 │   ├── platform/           # clavier raylib
 │   ├── ui/                 # menu, assets et rendu raylib
