@@ -21,7 +21,8 @@ CORE_SRCS := \
 	src/core/board.c \
 	src/core/snake.c \
 	src/core/game.c \
-	src/core/level.c
+	src/core/level.c \
+	src/core/layout.c
 
 APP_SRCS := \
 	src/main.c \
@@ -40,7 +41,8 @@ TEST_SRCS := \
 	tests/test_main.c \
 	tests/test_board.c \
 	tests/test_snake.c \
-	tests/test_game.c
+	tests/test_game.c \
+	tests/test_layout.c
 
 ASSET_FILES := $(shell find assets -type f 2>/dev/null)
 ASSET_STAMP := build/obj/.assets-copied

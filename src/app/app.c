@@ -2,6 +2,7 @@
 
 #include "snake/game.h"
 #include "snake/input.h"
+#include "snake/layout.h"
 #include "snake/menu.h"
 #include "snake/renderer.h"
 #include "snake/score.h"
@@ -11,8 +12,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define INITIAL_WINDOW_WIDTH 720
-#define INITIAL_WINDOW_HEIGHT 760
 #define TARGET_FPS 60
 #define MAX_STEPS_PER_FRAME 8
 
@@ -125,6 +124,27 @@ static SessionResult run_game(const GameConfig *config, int *highscore)
     return result;
 }
 
+/* Choisit la taille de fenetre une seule fois, d'apres l'ecran courant.
+   Le menu et la partie partagent ensuite cette taille jusqu'a la fermeture. */
+static void window_apply_size(void)
+{
+    int monitor = GetCurrentMonitor();
+    int monitor_width = GetMonitorWidth(monitor);
+    int monitor_height = GetMonitorHeight(monitor);
+    WindowSize window = layout_window_size(monitor_width, monitor_height);
+    Vector2 monitor_position = GetMonitorPosition(monitor);
+
+    SetWindowSize(window.width, window.height);
+    SetWindowPosition((int)monitor_position.x + ((monitor_width - window.width) / 2),
+                      (int)monitor_position.y + ((monitor_height - window.height) / 2));
+    TraceLog(LOG_INFO,
+             "Fenetre %ix%i pour un ecran %ix%i",
+             window.width,
+             window.height,
+             monitor_width,
+             monitor_height);
+}
+
 int app_run(void)
 {
     GameConfig config;
@@ -132,7 +152,8 @@ int app_run(void)
     int highscore;
     int persisted_highscore;
 
-    InitWindow(INITIAL_WINDOW_WIDTH, INITIAL_WINDOW_HEIGHT, "Snake");
+    InitWindow(LAYOUT_MIN_WIDTH, LAYOUT_MIN_HEIGHT, "Snake");
+    window_apply_size();
     SetExitKey(KEY_NULL);
     SetTargetFPS(TARGET_FPS);
 
