@@ -11,6 +11,8 @@ Le projet separe la logique du jeu de l'interface : le coeur (`board`, `snake`, 
 - raylib 6.0 ;
 - `pkg-config` recommande pour retrouver automatiquement les flags raylib.
 
+Les images du dossier `assets/` sont en PNG : les binaires raylib officiels ne decodent pas le JPEG (`SUPPORT_FILEFORMAT_JPG` est desactive par defaut), une image `.jpg` ne se chargerait pas.
+
 ## Compiler et lancer
 
 ```sh
