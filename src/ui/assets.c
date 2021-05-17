@@ -57,7 +57,7 @@ bool assets_load(void)
     assets.trophy = load_texture("sprites/trophy.png");
     assets.portal = load_texture("sprites/portal.png");
     assets.bomb = load_texture("sprites/bomb.png");
-    assets.menu_background = load_texture("backgrounds/menu.jpg");
+    assets.menu_background = load_texture("backgrounds/menu.png");
 
     return IsTextureValid(assets.apple) && IsTextureValid(assets.trophy) &&
            IsTextureValid(assets.portal) && IsTextureValid(assets.bomb) &&
